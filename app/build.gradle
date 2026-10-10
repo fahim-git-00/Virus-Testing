@@ -5,6 +5,7 @@ plugins {
 android {
     namespace 'com.security.lab'
     compileSdk 35
+    ndkVersion '27.2.12479018'
 
     defaultConfig {
         applicationId 'com.security.lab'

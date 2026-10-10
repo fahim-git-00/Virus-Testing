@@ -4,9 +4,8 @@ project(securitylab LANGUAGES C CXX)
 add_library(securitylab SHARED native.cpp native.c)
 
 find_library(log-lib log)
-find_package(OpenSSL REQUIRED)
 
-target_link_libraries(securitylab ${log-lib} OpenSSL::Crypto)
+target_link_libraries(securitylab ${log-lib} crypto ssl)
 
 set(RUST_LIB_DIR ${CMAKE_SOURCE_DIR}/../../../rust-core/target)
 set(RUST_LIB_NAME libsecurity_lab_core.a)
