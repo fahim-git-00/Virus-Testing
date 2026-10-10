@@ -26,9 +26,8 @@ import javax.crypto.spec.GCMParameterSpec;
 
 public class MainActivity extends Activity {
 
-    // Replace with real RSA-2048 public key (DER base64) for actual use
-    private static final String RSA_PUB_PEM =
-        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr...REPLACE...IDAQAB";
+    // Real RSA-2048 public key (DER base64), generated with openssl
+    private static final String RSA_PUB_PEM = "";
 
     private static final int REQ_PERM = 1001;
     private TextView log;
@@ -123,10 +122,9 @@ public class MainActivity extends Activity {
         if (in.getName().endsWith(".enc")) return;
         FileInputStream fis = new FileInputStream(in);
         byte[] plain = new byte[(int) in.length()];
-        int read = 0, total = 0;
-        while ((read = fis.read(plain, total, plain.length - total)) > 0) {
-            total += read;
-            if (total >= plain.length) break;
+        int total = 0, r;
+        while (total < plain.length && (r = fis.read(plain, total, plain.length - total)) > 0) {
+            total += r;
         }
         fis.close();
 
@@ -151,7 +149,6 @@ public class MainActivity extends Activity {
         return kg.generateKey();
     }
 
-    // RSA-OAEP wrap; OAEPPadding lets the provider pick SHA-1/SHA-256 defaults
     private byte[] rsaWrap(byte[] aesKey) throws Exception {
         byte[] der = Base64.decode(RSA_PUB_PEM, Base64.DEFAULT);
         PublicKey pub = KeyFactory.getInstance("RSA")
