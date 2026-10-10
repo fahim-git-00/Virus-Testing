@@ -6,7 +6,7 @@ edition = "2021"
 [lib]
 name = "security_lab_core"
 path = "src/lib.rs"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["staticlib", "rlib"]
 
 [dependencies]
 rsa = "0.9"

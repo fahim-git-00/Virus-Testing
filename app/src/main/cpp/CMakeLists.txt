@@ -8,7 +8,20 @@ find_package(OpenSSL REQUIRED)
 
 target_link_libraries(securitylab ${log-lib} OpenSSL::Crypto)
 
+set(RUST_LIB_DIR ${CMAKE_SOURCE_DIR}/../../../rust-core/target)
+set(RUST_LIB_NAME libsecurity_lab_core.a)
+
 add_library(rust_core STATIC IMPORTED)
-set_target_properties(rust_core PROPERTIES IMPORTED_LOCATION
-    ${CMAKE_SOURCE_DIR}/../../../rust-core/target/aarch64-linux-android/release/libsecurity_lab_core.a)
+
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    set_target_properties(rust_core PROPERTIES
+        IMPORTED_LOCATION ${RUST_LIB_DIR}/aarch64-linux-android/release/${RUST_LIB_NAME})
+elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+    set_target_properties(rust_core PROPERTIES
+        IMPORTED_LOCATION ${RUST_LIB_DIR}/armv7-linux-androideabi/release/${RUST_LIB_NAME})
+elseif(ANDROID_ABI STREQUAL "x86_64")
+    set_target_properties(rust_core PROPERTIES
+        IMPORTED_LOCATION ${RUST_LIB_DIR}/x86_64-linux-android/release/${RUST_LIB_NAME})
+endif()
+
 target_link_libraries(securitylab rust_core)
