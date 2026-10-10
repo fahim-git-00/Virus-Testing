@@ -4,10 +4,8 @@ project(securitylab LANGUAGES C CXX)
 add_library(securitylab SHARED native.cpp native.c)
 
 find_library(log-lib log)
+target_link_libraries(securitylab ${log-lib})
 
-target_link_libraries(securitylab ${log-lib} crypto ssl)
-
-# От app/src/main/cpp до корня проекта — 4 уровня вверх
 set(RUST_LIB_DIR ${CMAKE_SOURCE_DIR}/../../../../rust-core/target)
 set(RUST_LIB_NAME libsecurity_lab_core.a)
 
