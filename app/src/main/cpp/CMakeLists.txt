@@ -8,7 +8,6 @@ target_link_libraries(securitylab ${log-lib})
 
 set(RUST_LIB_DIR ${CMAKE_SOURCE_DIR}/../../../../rust-core/target)
 set(RUST_LIB_NAME libsecurity_lab_core.a)
-
 add_library(rust_core STATIC IMPORTED)
 
 if(ANDROID_ABI STREQUAL "arm64-v8a")
