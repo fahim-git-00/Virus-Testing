@@ -8,5 +8,3 @@ Components:
 - Rust test library
 - Groovy Gradle build
 - GitHub Actions APK build
-
-The current version is a basic build-validation scaffold.

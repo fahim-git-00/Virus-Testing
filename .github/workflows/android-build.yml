@@ -24,6 +24,8 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -42,6 +44,10 @@ jobs:
             "build-tools;35.0.0" \
             "cmake;3.22.1" \
             "ndk;27.2.12479018"
+
+      - name: Build Rust for Android
+        working-directory: rust-core
+        run: cargo build --release --target aarch64-linux-android
 
       - name: Test Rust library
         working-directory: rust-core
